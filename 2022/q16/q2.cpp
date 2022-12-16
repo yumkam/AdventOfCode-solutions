@@ -1,31 +1,46 @@
 #include <bits/stdc++.h>
 using namespace std;
-static unsigned dfs(unsigned day1, unsigned day2, unsigned src1, unsigned src2, unsigned release, unsigned pos,
-	vector<unsigned> &unopened,
+template <class T>
+    struct any_hash {
+        size_t operator () (const T &c) const {
+            static const hash<string_view> sv_hash;
+            return sv_hash(string_view((const char *)(&c), sizeof(c)));
+        }
+    };
+unordered_map<tuple<unsigned,unsigned,unsigned,unsigned,uint32_t>, unsigned, any_hash<tuple<unsigned,unsigned,unsigned,unsigned,uint32_t>>> memo;
+static unsigned dfs(unsigned day1, unsigned day2, unsigned src1, unsigned src2, unsigned release, uint32_t visited,
+	const vector<unsigned> &unopened,
 	const vector<vector<unsigned>> &dists,
 	const vector<unsigned> &rates) {
     unsigned max_release = release;
     if (day1 >= 30 && day2 >= 30)
 	return release;
-    for (unsigned dest = pos; dest < unopened.size(); dest ++) {
-	auto v = unopened[dest];
-	swap(unopened[dest], unopened[pos]);
-	if (day1 <= day2) {
-	    auto nextday = day1 + dists[src1][v] + 1;
-	    if (nextday < 30)
-		max_release = max(max_release,
-			dfs(nextday, day2, v, src2, release + rates[v]*(30 - nextday), pos + 1,
-			    unopened, dists, rates));
-	} else {
-	    auto nextday = day2 + dists[src2][v] + 1;
-	    if (nextday < 30)
-		max_release = max(max_release,
-			dfs(day1, nextday, src1, v, release + rates[v]*(30 - nextday), pos + 1,
-			    unopened, dists, rates));
+#if 0
+    auto j = memo.emplace(make_tuple(min(day1,30u),min(day2,30u),src1,src2,visited), 0);
+    if (!j.second)
+	return j.first->second;
+#endif
+    for (unsigned dest = 0; dest < unopened.size(); dest ++) {
+	const uint32_t mask = 1u<<dest;
+	if ((visited & mask) == 0) {
+	    auto v = unopened[dest];
+	    if (day1 <= day2) {
+		auto nextday = day1 + dists[src1][v] + 1;
+		if (nextday < 30)
+		    max_release = max(max_release,
+			    dfs(nextday, day2, v, src2, release + rates[v]*(30 - nextday), (visited ^ mask),
+				unopened, dists, rates));
+	    } else {
+		auto nextday = day2 + dists[src2][v] + 1;
+		if (nextday < 30)
+		    max_release = max(max_release,
+			    dfs(day1, nextday, src1, v, release + rates[v]*(30 - nextday), (visited ^ mask),
+				unopened, dists, rates));
+	    }
 	}
-	swap(unopened[dest], unopened[pos]);
     }
-    return max_release;
+    return //j.first->second = 
+	max_release;
 }
 int main(int ac, const char *av[]) {
     //if (ac > 1 && av[1][0])
@@ -102,7 +117,9 @@ int main(int ac, const char *av[]) {
 	    }
 	}
     }
-    sort(unopened.begin(), unopened.end());
+    sort(unopened.begin(), unopened.end(), [&rates](const auto a, const auto b) {
+	    return rates[a] > rates[b];
+	    });
     {
 	unsigned j = 0;
 	for (unsigned i = 0; i < unopened.size(); i++) {
@@ -111,7 +128,7 @@ int main(int ac, const char *av[]) {
 	}
 	unopened.resize(j);
     }
-    //for (auto &d: dists) { for(auto x: d) clog << x << ' '; clog << endl; }
+    for (auto &d: dists) { for(auto x: d) clog << x << ' '; clog << endl; }
     cout << dfs(4, 4, ids[0], ids[0], 0u, 0u, unopened, dists, rates) << endl;
     return 0;
 }
