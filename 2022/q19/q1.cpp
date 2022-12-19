@@ -42,12 +42,14 @@ int main(int ac, const char *av[]) {
 	    clog << endl;
 	}
 	// state: { collected: ore, clay, obsidan, geode; robots: ore, clay, obsidan, geode }
-	deque<array<array<uint8_t,4>, 2>> state, next;
+	//deque<array<array<uint8_t,4>, 2>> state, next;
+	vector<array<array<uint8_t,4>, 2>> state, next;
 	state.emplace_back();
 	state.front()[1][0] = 1;
-	for (unsigned day = 1; day <= 24; day++) {
+	const unsigned maxday = 24;
+	for (unsigned day = 1; day <= maxday; day++) {
 	    next.clear();
-	    //next.reserve(state.size()*2);
+	    next.reserve(state.size()*2);
 	    clog << "day " << day;
 	    unsigned ins = 0;
 	    for (auto &s: state) {
@@ -58,13 +60,8 @@ int main(int ac, const char *av[]) {
 		s[0][1] += s[1][1];
 		s[0][2] += s[1][2];
 		s[0][3] += s[1][3];
-		for (unsigned i = 0; i < 3; i++) {
-		    if (save[i] <= limit[i]) {
 			next.push_back(s);
 			ins++;
-			break;
-		    }
-		}
 
 		//clog << '>'  << next.back()[0][0] << ' ' << next.back()[0][1] << ' ' << next.back()[0][2] << ' ' << next.back()[0][3] << '@'
 		//    << next.back()[1][0] << ' ' << next.back()[1][1] << ' ' << next.back()[1][2] << ' ' << next.back()[1][3] << ' ' << endl;
@@ -84,6 +81,86 @@ int main(int ac, const char *av[]) {
 	    }
 	    sort(next.begin(), next.end());
 	    next.erase(unique(next.begin(), next.end()), next.end());
+	    auto minmaxg = 0;
+	    for (auto &s: next) {
+		auto curf = s[0][0];
+		auto curF = s[1][0];
+		auto curc = s[0][0];
+		auto curC = s[1][0];
+		auto curo = s[0][2];
+		auto curO = s[1][2];
+		auto curg = s[0][3];
+		auto curG = s[1][3];
+		// pessimistic scenario: we produce same amount of obsidan every day
+		// and build new geode robot once we collected enough obsidan
+		for (unsigned nday = day + 1; nday <= maxday; nday++) {
+		    curg += curG;
+		    if (curo >= costs[3][2] && curf >= costs[3][0]) {
+		    	curo -= costs[3][2];
+			curf -= costs[3][0];
+		    	curG++;
+		    } else {
+			// we are not producing anything today, try something...
+			if ((curF < costs[3][0] || curf < costs[2][0]) && curf >= costs[0][0] && curf - costs[0][0] + curF >= costs[3][0]) {
+			    // we are not producing enough ore for making geode robot daily,
+			    // we have enough ore to produce ore robot,
+			    // and after that we will have enough ore to produce geoge robot
+			    curf -= costs[0][0];
+			    curF++;
+			    curf--; // compensate early curF change
+			} else if (curO < costs[3][2] && curf >= costs[2][0] && curf - costs[2][0] + curF >= costs[3][0] && curc >= costs[2][1]) {
+			    // we are not producing enough obsidan for making geode robot daily,
+			    // we have enough ore to produce obsidan robot,
+			    // we have enough clay to produce obsidan robot,
+			    // and after that we will have enough ore to produce geoge robot
+			    curf -= costs[2][0];
+			    curc -= costs[2][1];
+			    curO++;
+			    curo--; // compensate early curO change
+			} else if (curf >= costs[1][0] && curf - costs[1][0] + curF >= costs[3][0]) {
+			    curf -= costs[1][0];
+			    curC++;
+			    curc--;
+			}
+		    }
+		    curo += curO;
+		    curc += curC;
+		    curf += curF;
+		}
+		minmaxg = max<unsigned>(minmaxg, curg);
+	    }
+	    auto end = next.begin();
+	    for (auto &s: next) {
+		auto curf = s[0][0];
+		auto curF = s[1][0];
+		auto curo = s[0][2];
+		auto curO = s[1][2];
+		auto curg = s[0][3];
+		auto curG = s[1][3];
+		// (overly) optimistic scenario: we take new obsidan and ore robot every day out of thin air
+		// and (impossibly) at the same time build new geode robot once we collected obsidan and ore
+		for (unsigned nday = day + 1; nday <= maxday; nday++) {
+		    curg += curG;
+		    if (curg >= minmaxg)
+			break;
+		    if (curo >= costs[3][2] && curf >= costs[3][0]) {
+		    	curo -= costs[3][2];
+			curf -= costs[3][0];
+		    	curG++;
+		    }
+		    curo += curO;
+		    curO++;
+		    curf += curF;
+		    curF++;
+		}
+		// in this overly optimistic scenario, can we beat pessimistic scenario?
+		if (curg >= minmaxg)
+		    // yes
+		    *end++ = s;
+		// otherwise, skip this state
+	    }
+	    //clog << next.end() - end << endl;
+	    next.erase(end, next.end());
 	    clog << ' ' << next.size() << ' ' << ins - next.size() << endl;
 	    state.swap(next);
 	}
