@@ -5,48 +5,49 @@ int main(int ac, const char *av[]) {
     // resources: [ore, clay, obsidan]
     array<array<unsigned,3>,4> costs {{0}};
     string s;
-    int i;
+    unsigned i;
     char c;
     unsigned ret = 0;
     while(cin >> s >> i >> c) { // <Blueprint> $num <:>
 	int blueprint = i;
-	// <Each> <XXX> <robot> <costs> $num <ore>
+	// <Each> <ore> <robot> <costs> $num <ore>
 	cin >> s >> s >> s >> s >>  i >> s;
 	clog << s;
+	array<unsigned,3> limit;
 	costs[0][0] = i;
-	// <Each> <XXX> <robot> <costs> $num <ore>
+	limit[0] = i;
+	// <Each> <clay> <robot> <costs> $num <ore>
 	cin >> s >> s >> s >> s >> i >> s;
 	costs[1][0] = i;
-	// <Each> <XXX> <robot> <costs> $num <ore>
+	limit[0] = max(i, limit[0]);
+	// <Each> <obsidan> <robot> <costs> $num <ore>
 	cin >> s >> s >> s >> s >> i >> s;
 	costs[2][0] = i;
+	limit[0] = max(i, limit[0]);
 	// and $num <clay>
 	cin >> s >> i >> s;
 	costs[2][1] = i;
-	// <Each> <XXX> <robot> <costs> $num <ore>
+	limit[1] = i;
+	// <Each> <geode> <robot> <costs> $num <ore>
 	cin >> s >> s >> s >> s >> i >> s;
 	costs[3][0] = i;
-	// and $num <clay>
+	limit[0] = max(i, limit[0]);
+	// and $num <obsidan>
 	cin >> s >> i >> s;
 	costs[3][2] = i;
+	limit[2] = i;
 	for (unsigned type = 0; type < 4; type++) {
 	    for (auto c: costs[type])
 		clog << c << ' ';
 	    clog << endl;
 	}
 	// state: { collected: ore, clay, obsidan, geode; robots: ore, clay, obsidan, geode }
-	vector<array<array<uint8_t,4>, 2>> state;
-	auto vhash = [](auto &v) {
-	    static const hash<string_view> sv_hash;
-	    return sv_hash(string_view((const char *)(v.data()), v.size()*sizeof(v[0])));
-	};
-
-	unordered_set<array<array<uint8_t,4>, 2>, decltype(vhash)> next(100000000, vhash);
+	deque<array<array<uint8_t,4>, 2>> state, next;
 	state.emplace_back();
 	state.front()[1][0] = 1;
 	for (unsigned day = 1; day <= 24; day++) {
 	    next.clear();
-	    next.reserve(state.size()*2);
+	    //next.reserve(state.size()*2);
 	    clog << "day " << day;
 	    unsigned ins = 0;
 	    for (auto &s: state) {
@@ -57,8 +58,13 @@ int main(int ac, const char *av[]) {
 		s[0][1] += s[1][1];
 		s[0][2] += s[1][2];
 		s[0][3] += s[1][3];
-		next.insert(s);
-		ins++;
+		for (unsigned i = 0; i < 3; i++) {
+		    if (save[i] <= limit[i]) {
+			next.push_back(s);
+			ins++;
+			break;
+		    }
+		}
 
 		//clog << '>'  << next.back()[0][0] << ' ' << next.back()[0][1] << ' ' << next.back()[0][2] << ' ' << next.back()[0][3] << '@'
 		//    << next.back()[1][0] << ' ' << next.back()[1][1] << ' ' << next.back()[1][2] << ' ' << next.back()[1][3] << ' ' << endl;
@@ -69,15 +75,17 @@ int main(int ac, const char *av[]) {
 			t[0][1] -= costs[type][1];
 			t[0][2] -= costs[type][2];
 			t[1][type]++;
-			next.insert(t);
+			next.push_back(t);
 			ins++;
 			//clog << '>'  << next.back()[0][0] << ' ' << next.back()[0][1] << ' ' << next.back()[0][2] << ' ' << next.back()[0][3] << '@'
 			//    << next.back()[1][0] << ' ' << next.back()[1][1] << ' ' << next.back()[1][2] << ' ' << next.back()[1][3] << ' ' << endl;
 		    }
 		}
 	    }
-	    state.assign(next.begin(), next.end());
-	    clog << ' ' << ins - next.size() << endl;
+	    sort(next.begin(), next.end());
+	    next.erase(unique(next.begin(), next.end()), next.end());
+	    clog << ' ' << next.size() << ' ' << ins - next.size() << endl;
+	    state.swap(next);
 	}
 	unsigned maxg = 0;
 	for (auto &s: state)
