@@ -1,4 +1,12 @@
 #include <bits/stdc++.h>
+#if 0
+#include "jg/dense_hash_map.hpp"
+using namespace jg;
+struct empty_t {};
+#else
+#include "sparsehash/sparse_hash_set"
+using namespace google;
+#endif
 //#include <boost/pool/singleton_pool.hpp>
 //struct node_pool { };
 //using singleton_node_pool = boost::singleton_pool<node_pool, sizeof(PatriciaNode)>;
@@ -47,12 +55,16 @@ int main(int ac, const char *av[]) {
 	    return sv_hash(string_view((const char *)(v.data()), v.size()*sizeof(v[0])));
 	};
 
-	unordered_set<array<array<uint8_t,4>, 2>, decltype(vhash)> next(1000, vhash);
+#if 0
+	dense_hash_map<array<array<uint8_t,4>, 2>, empty_t, decltype(vhash)> next(1000, vhash);
+#else
+	google::sparse_hash_set<array<array<uint8_t,4>, 2>, decltype(vhash)> next(1000, vhash);
+#endif
 	state.emplace_back();
 	state.front()[1][0] = 1;
 	for (unsigned day = 1; day <= maxday; day++) {
 	    next.clear();
-	    next.reserve(state.size()*4);
+	    //next.reserve(state.size()*4);
 	    clog << "day " << day;
 	    unsigned ins = 0;
 	    for (auto &s: state) {
@@ -88,6 +100,7 @@ int main(int ac, const char *av[]) {
 	    }
 	    state.clear();
 	    state.reserve(next.size());
+	    //for (auto &e: next) state.push_back(e.first);
 	    state.assign(next.begin(), next.end());
 	    clog << ' ' << ins - next.size() << ' ' << next.size() << endl;
 	}
