@@ -1,12 +1,4 @@
 #include <bits/stdc++.h>
-#if 0
-#include "jg/dense_hash_map.hpp"
-using namespace jg;
-struct empty_t {};
-#else
-#include "sparsehash/sparse_hash_set"
-using namespace google;
-#endif
 //#include <boost/pool/singleton_pool.hpp>
 //struct node_pool { };
 //using singleton_node_pool = boost::singleton_pool<node_pool, sizeof(PatriciaNode)>;
@@ -17,31 +9,41 @@ int main(int ac, const char *av[]) {
     // resources: [ore, clay, obsidan]
     array<array<unsigned,3>,4> costs {{0}};
     string s;
-    int i;
+    unsigned i;
     char c;
     unsigned ret = 1;
-    const unsigned maxday = 24;
+    const unsigned maxday = 32;
+    map<tuple<uint8_t, uint8_t, uint8_t>, array<uint8_t, 4>> m;
     while(cin >> s >> i >> c) { // <Blueprint> $num <:>
 	int blueprint = i;
 	if (blueprint > 3) break;
 	// <Each> <XXX> <robot> <costs> $num <ore>
 	cin >> s >> s >> s >> s >>  i >> s;
+	array<unsigned,3> limits;
 	costs[0][0] = i;
+	limits[0] = i;
 	// <Each> <XXX> <robot> <costs> $num <ore>
 	cin >> s >> s >> s >> s >> i >> s;
 	costs[1][0] = i;
+	limits[0] += i;
 	// <Each> <XXX> <robot> <costs> $num <ore>
 	cin >> s >> s >> s >> s >> i >> s;
 	costs[2][0] = i;
+	limits[0] += i;
+	// <Each> <XXX> <robot> <costs> $num <ore>
 	// <and> $num <clay>
 	cin >> s >> i >> s;
 	costs[2][1] = i;
+	limits[1] = i;
 	// <Each> <XXX> <robot> <costs> $num <ore>
 	cin >> s >> s >> s >> s >> i >> s;
 	costs[3][0] = i;
+	limits[0] += i;
+	// <Each> <XXX> <robot> <costs> $num <ore>
 	// <and> $num <obsidan>
 	cin >> s >> i >> s;
 	costs[3][2] = i;
+	limits[2] = i;
 
 	for (unsigned type = 0; type < 4; type++) {
 	    for (auto c: costs[type])
@@ -49,22 +51,14 @@ int main(int ac, const char *av[]) {
 	    clog << endl;
 	}
 	// state: { collected: ore, clay, obsidan, geode; robots: ore, clay, obsidan, geode }
-	vector<array<array<uint8_t,4>, 2>> state;
-	auto vhash = [](auto &v) {
-	    static const hash<string_view> sv_hash;
-	    return sv_hash(string_view((const char *)(v.data()), v.size()*sizeof(v[0])));
-	};
+	deque<array<array<uint8_t,4>, 2>> state, next;
 
-#if 0
-	dense_hash_map<array<array<uint8_t,4>, 2>, empty_t, decltype(vhash)> next(1000, vhash);
-#else
-	google::sparse_hash_set<array<array<uint8_t,4>, 2>, decltype(vhash)> next(1000, vhash);
-#endif
 	state.emplace_back();
 	state.front()[1][0] = 1;
+	array<array<uint8_t,4>, 2> maxv {{0}};
 	for (unsigned day = 1; day <= maxday; day++) {
 	    next.clear();
-	    //next.reserve(state.size()*4);
+	    //next.reserve(state.size()*2);
 	    clog << "day " << day;
 	    unsigned ins = 0;
 	    for (auto &s: state) {
@@ -79,8 +73,12 @@ int main(int ac, const char *av[]) {
 		s[0][1] += s[1][1];
 		s[0][2] += s[1][2];
 		s[0][3] += s[1][3];
-		next.insert(s);
-		ins++;
+		for (unsigned i = 0; i < 3; i++)
+		    if (1 || save[i] <= limits[i]) {
+			next.push_back(s);
+			ins++;
+			break;
+		    }
 
 		//clog << '>'  << next.back()[0][0] << ' ' << next.back()[0][1] << ' ' << next.back()[0][2] << ' ' << next.back()[0][3] << '@'
 		//    << next.back()[1][0] << ' ' << next.back()[1][1] << ' ' << next.back()[1][2] << ' ' << next.back()[1][3] << ' ' << endl;
@@ -91,18 +89,27 @@ int main(int ac, const char *av[]) {
 			t[0][1] -= costs[type][1];
 			t[0][2] -= costs[type][2];
 			t[1][type]++;
-			next.insert(t);
-			ins++;
+			unsigned lecnt = 0;
+			for (unsigned a = 0; a < 2; a++) 
+			    for (unsigned b = 0; b < 4; b++)
+				if (t[a][b] > maxv[a][b])
+				    maxv[a][b] = t[a][b];
+				else
+				    lecnt++;
+			if (lecnt != 2*4) {
+			    next.push_back(t);
+			    ins++;
+			}
 			//clog << '>'  << next.back()[0][0] << ' ' << next.back()[0][1] << ' ' << next.back()[0][2] << ' ' << next.back()[0][3] << '@'
 			//    << next.back()[1][0] << ' ' << next.back()[1][1] << ' ' << next.back()[1][2] << ' ' << next.back()[1][3] << ' ' << endl;
 		    }
 		}
 	    }
 	    state.clear();
-	    state.reserve(next.size());
-	    //for (auto &e: next) state.push_back(e.first);
-	    state.assign(next.begin(), next.end());
-	    clog << ' ' << ins - next.size() << ' ' << next.size() << endl;
+	    sort(next.begin(), next.end());
+	    next.erase(unique(next.begin(), next.end()), next.end());
+	    clog << ' ' << ins - next.size() << ' ' << next.size() << ' ' << next.size()*(1.0*sizeof(next[0])/1024/1024)<< endl;
+	    state.swap(next);
 	}
 	unsigned maxg = 0;
 	for (auto &s: state)
