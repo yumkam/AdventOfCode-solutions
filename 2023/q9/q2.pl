@@ -19,7 +19,6 @@ for (;;) {
 for (my $i = scalar @aoa; $i-- > 1; ) {
     unshift @{$aoa[$i - 1]}, $aoa[$i - 1]->[0] - $aoa[$i]->[0];
 }
-warn $aoa[0]->[0];
 $res +=  $aoa[0]->[0];
 END {
     print $res

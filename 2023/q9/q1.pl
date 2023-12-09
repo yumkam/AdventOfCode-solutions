@@ -19,7 +19,6 @@ for (;;) {
 for (my $i = scalar @aoa; $i-- > 1; ) {
     push @{$aoa[$i - 1]}, $aoa[$i - 1]->[$#{$aoa[$i - 1]}] + $aoa[$i]->[$#{$aoa[$i]}];
 }
-warn $aoa[0]->[$#{$aoa[0]}];
 $res +=  $aoa[0]->[$#{$aoa[0]}];
 END {
     print $res
