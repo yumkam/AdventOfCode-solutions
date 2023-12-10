@@ -81,7 +81,7 @@ int main() {
 #endif
         }
 #if DEBUG
-	std::clog << endl;
+	std::clog << std::endl;
 #endif
     }
 #if VERBOSE
