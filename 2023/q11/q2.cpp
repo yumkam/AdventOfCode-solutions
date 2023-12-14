@@ -25,7 +25,7 @@ int main() {
 	}
 	gsize += cnt;
 	if (cnt == 0) {
-	    row += multiplier - 1; // double empty rows
+	    row += multiplier - 1; // multiply empty rows
 	    debug(clog << 'E' << row);
 	}
 	debug(clog << endl);
@@ -36,7 +36,7 @@ int main() {
     uint64_t add = 0;
     for (auto &[col,rows]: gals) {
 	add += (col - prev - 1)*(multiplier - 1);
-	debug(cout << col << '+' << add << endl);
+	debug(clog << col << '+' << add << endl);
 	for (auto r: rows)
 	    garr.emplace_back(r, col + add);
 	prev = col;
