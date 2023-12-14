@@ -1,5 +1,10 @@
 #include <bits/stdc++.h>
 using namespace std;
+struct hashop {
+    auto operator () (const auto &a) const noexcept {
+	return a.first;
+    };
+};
 int main() {
     string s;
     vector<string> vgrid;
@@ -19,7 +24,7 @@ int main() {
     unsigned res = 0;
     vector<string> hgrid(n, string(m, '.'));
     static constexpr size_t hpow = 10007;
-    unordered_map<size_t, unsigned> memo; // hash -> cycle
+    unordered_map<pair<size_t,vector<string>>, unsigned, hashop> memo; // hash -> cycle
     for (unsigned cycle = 0; cycle < cycles; ++cycle) {
 	// north
 	fill_n(vlimit.begin(), n, 0);
@@ -42,7 +47,7 @@ int main() {
 		++vlimit[c];
 	    }
 	}
-	auto x = memo.try_emplace(hash, cycle);
+	auto x = memo.try_emplace(pair { hash, vgrid }, cycle);
 	if (!x.second) {
 	    uint64_t loop_length = cycle - x.first->second;
 	    if (cycles - cycle > loop_length) {
