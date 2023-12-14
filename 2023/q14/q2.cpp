@@ -1,10 +1,5 @@
 #include <bits/stdc++.h>
 using namespace std;
-struct hashop {
-    auto operator () (const auto &a) const noexcept {
-	return a.first;
-    };
-};
 int main() {
     string s;
     vector<string> vgrid;
@@ -24,7 +19,11 @@ int main() {
     unsigned res = 0;
     vector<string> hgrid(n, string(m, '.'));
     static constexpr size_t hpow = 10007;
-    unordered_map<pair<size_t,vector<string>>, unsigned, hashop> memo; // hash -> cycle
+    unsigned slow_cycle = 0;
+    vector<string> slow;
+    unsigned slow_limit = 0;
+    unsigned slow_length = 1;
+    size_t slow_hash = 0;
     for (unsigned cycle = 0; cycle < cycles; ++cycle) {
 	// north
 	fill_n(vlimit.begin(), n, 0);
@@ -47,14 +46,21 @@ int main() {
 		++vlimit[c];
 	    }
 	}
-	auto x = memo.try_emplace(pair { hash, vgrid }, cycle);
-	if (!x.second) {
-	    uint64_t loop_length = cycle - x.first->second;
-	    if (cycles - cycle > loop_length) {
-		debug(clog << "cycle " << x.first->second << ' ' << cycle << '>');
-		cycle += (cycles - cycle)/loop_length*loop_length;
-		debug(clog << cycle << endl);
+	if (slow_limit--) {
+	    if (hash == slow_hash && slow == vgrid) {
+		uint64_t loop_length = cycle - slow_cycle;
+		if (cycles - slow_cycle > loop_length) {
+		    debug(clog << "cycle " << slow_cycle << ' ' << cycle << '>');
+		    cycle += (cycles - cycle)/loop_length*loop_length;
+		    debug(clog << cycle << endl);
+		}
 	    }
+	} else {
+	    slow_length *= 2;
+	    slow_cycle = cycle;
+	    slow = vgrid;
+	    slow_limit = slow_length;
+	    slow_hash = hash;
 	}
 	//debug(for (auto &r: hgrid) clog << r << endl);
 	//debug(clog << endl);
