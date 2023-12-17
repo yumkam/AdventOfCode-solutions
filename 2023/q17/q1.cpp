@@ -39,9 +39,8 @@ int main() {
 	auto idx = ((r*n+c)*d_dirs+d)*maxmoves+steps;
 	if (mincost[idx] < cost)
 	    continue;
-	debug(clog << r << ',' << c << ';' << d << '/' << steps);
+	debug(clog << r << ',' << c << ';' << d << '/' << steps << '@' << cost);
 	auto [odr, odc] = delta[d];
-	cost += grid[r][c] - '0';
 	for (int newdir = d_right; newdir < d_dirs; ++newdir) {
 	    if (newdir == d && steps == 0) // too many steps
 		continue;
@@ -50,16 +49,18 @@ int main() {
 		continue;
 	    auto nr = r + dr;
 	    auto nc = c + dc;
-	    if (nr < 0 || nc < 0 || nr == m || nc == n)
+	    if (nr < 0 || nc < 0 || nr >= m || nc >= n)
 		continue;
-	    auto nsteps = (newdir == d ? steps - 1 : maxmoves - 1);
+	    auto nsteps = (newdir == d ? steps : maxmoves) - 1;
 	    auto newidx = ((nr*n+nc)*d_dirs+newdir)*maxmoves+nsteps;
 	    auto &curcost = mincost[newidx];
-	    if (cost >= curcost)
+	    auto newcost = cost + grid[nr][nc] - '0';
+	    if (newcost >= curcost)
 		continue;
-	    curcost = cost;
+	    debug(clog << '>' << nr << ',' << nc << '@' << newcost);
+	    curcost = newcost;
 	    pathback[((nr*n+nc)*d_dirs+newdir)*maxmoves+nsteps] = idx;
-	    q.emplace_back(cost, nr, nc, (dir)newdir, nsteps);
+	    q.emplace_back(newcost, nr, nc, (dir)newdir, nsteps);
 	    push_heap(q.begin(), q.end(), cmp);
 	}
 	debug(clog << '\n');
@@ -75,8 +76,6 @@ int main() {
 	    }
 	}
     }
-    cost += grid[m - 1][n - 1] - '0';
-    cost -= grid[0][0] - '0';
     cout << cost << endl;
 #if DEBUG
     array<char, d_dirs> dmap { '>' , '^', '<', 'v' };
@@ -94,7 +93,7 @@ int main() {
 	c = nc;
     }
     for (auto &row: grid)
-    	clog << row << endl;
+    	clog << row << '\n';
     clog << endl;
 #endif
     return 0;
