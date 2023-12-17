@@ -24,8 +24,6 @@ int main() {
     queue<tuple<int, int, dir>> q;
     q.emplace(0, 0, d_right);
     static const array<pair<int, int>, 4> delta {{{0, +1}, {-1, 0}, {0, -1}, {+1, 0}}};
-    static const array<dir, 4>  fslashmap { d_up, d_right, d_down, d_left };
-    static const array<dir, 4>  bslashmap { d_down, d_left, d_up, d_right };
 #define ENQ(R, C, D) do { \
     if (R >= 0 && C >= 0 && R < m && C < n && !(visited[(R)*n+(C)] & (1u<<(D)))) { \
 	debug(clog << '>' << (R) << ',' << (C) << ';' << (D)); \
@@ -42,18 +40,18 @@ int main() {
 		ENQ(r + delta[d].first, c + delta[d].second, d);
 		break;
 	    case '/':
-		// 0, 1 -> -1, 0 // right -> up [+1]
-		// 1, 0 -> 0, -1 // down -> left [-1]
-		// 0, -1 -> 1, 0 // left -> down [+1]
-		// -1, 0 -> 0, 1 // up -> right [-1]
-		ENQ(r - delta[d].second, c - delta[d].first, fslashmap[d]);
+		static_assert((d_right ^ 1) == d_up);  // 0, +1 -> -1, 0 // right -> up
+		static_assert((d_up ^ 1) == d_right);  // -1, 0 -> 0, +1 // up -> right
+		static_assert((d_left ^ 1) == d_down); // 0, -1 -> +1, 0 // left -> down
+		static_assert((d_down ^ 1) == d_left); // +1, 0 -> 0, -1 // down -> left
+		ENQ(r - delta[d].second, c - delta[d].first, (dir)(d^1));
 		break;
 	    case '\\':
-		// 0, 1 -> 1, 0 // right -> down
-		// 1, 0 -> 0, 1 // down -> right
-		// 0, -1 -> -1, 0 // left -> up
-		// -1, 0 -> 0, 1 // up -> left
-		ENQ(r + delta[d].second, c + delta[d].first, bslashmap[d]);
+		static_assert((d_right ^ 3) == d_down); // 0, +1 -> +1, 0 // right -> down
+		static_assert((d_up ^ 3) == d_left);    // -1, 0 -> 0, +1 // up -> left
+		static_assert((d_left ^ 3) == d_up);    // 0, -1 -> -1, 0 // left -> up
+		static_assert((d_down ^ 3) == d_right); // +1, 0 -> 0, +1 // down -> right
+		ENQ(r + delta[d].second, c + delta[d].first, (dir)(d^3));
 		break;
 	    case '-':
 		if (delta[d].second)
