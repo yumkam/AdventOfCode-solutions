@@ -2,11 +2,11 @@
 use strict;
 use warnings;
 my %rules;
-my(@tr) = (undef) x 256;
-$tr[ord('x')] = 0;
-$tr[ord('m')] = 1;
-$tr[ord('a')] = 2;
-$tr[ord('s')] = 3;
+my %tr;
+$tr{'x'} = 0;
+$tr{'m'} = 1;
+$tr{'a'} = 2;
+$tr{'s'} = 3;
 while(<>) {
     chomp;
     last unless length $_;
@@ -19,49 +19,55 @@ while(<>) {
     my @r;
     for my $rule (@F) {
 	$rule =~ /^([xmas])([<>])(\d+):([AR]|[a-z]+)$/ or die $rule;
-	push @r, [$tr[ord($1)], $2, $3,$4];
+	push @r, [$tr{$1}, $2, int($3),$4];
     }
     $rules{$name} = [\@r,$def];
 }
 my $res = 0;
 sub min($$) { $_[0] < $_[1] ? $_[0] : $_[1] }
 sub max($$) { $_[0] > $_[1] ? $_[0] : $_[1] }
-sub nest(&\$\$$$) {
-    my($call,$minref,$maxref,$op,$val) = @_;
-    #print STDERR "$$minref $$maxref $op $val";
-    if ($op eq '>') {
-	my $save = $$minref;
-	$$minref = $val + 1;
-	&$call;
-	$$minref = $save;
-	$$maxref = $val;
-    } else {
-	my $save = $$maxref;
-	$$maxref = $val - 1;
-	&$call;
-	$$maxref = $save;
-	$$minref = $val;
+sub dfs($$$);
+sub dfs($$$) {
+    my ($name, $mins, $maxs) = @_;
+    #warn "$name, @$mins, @$maxs";
+    for my $i (0..$#$mins) {
+	return if $mins->[$i] > $maxs->[$i]
     }
-}
-sub dfs($$$$$$$$$);
-sub dfs($$$$$$$$$) {
-    my ($name, $xmin, $xmax, $mmin, $mmax, $amin, $amax, $smin, $smax) = @_;
-    #print STDERR "$name, $xmin, $xmax, $mmin, $mmax, $amin, $amax, $smin, $smax";
-    return if $xmin > $xmax or $mmin > $mmax or $amin > $amax or $smin > $smax;
     if (length($name) == 1) {
 	return if $name eq 'R';
-	$res += ($xmax - $xmin + 1)*($mmax - $mmin + 1)*($amax - $amin + 1)*($smax - $smin + 1);
+	my $r = 1;
+	for my $i (0..$#$mins) {
+	    $r *= $maxs->[$i] - $mins->[$i] + 1
+	}
+	$res += $r;
 	return;
     }
+    $mins = [@$mins];
+    $maxs = [@$maxs];
     my $rule = $rules{$name};
     for my $x (@{$rule->[0]}) {
 	my($id,$op,$val,$dest) = @$x;
-	if ($id == 0) { nest { dfs($dest,$xmin,$xmax,$mmin,$mmax,$amin,$amax,$smin,$smax) } $xmin, $xmax, $op, $val; }
-	elsif ($id == 1) { nest { dfs($dest,$xmin,$xmax,$mmin,$mmax,$amin,$amax,$smin,$smax) } $mmin, $mmax, $op, $val; }
-	elsif ($id == 2) { nest { dfs($dest,$xmin,$xmax,$mmin,$mmax,$amin,$amax,$smin,$smax) } $amin, $amax, $op, $val; }
-	elsif ($id == 3) { nest { dfs($dest,$xmin,$xmax,$mmin,$mmax,$amin,$amax,$smin,$smax) } $smin, $smax, $op, $val; }
+	$val = int($val);
+	#warn "$id $mins->[$id] $maxs->[$id] $op $val";
+	if ($op eq '>') {
+	    my $save = $mins->[$id];
+	    $mins->[$id] = max($mins->[$id], $val + 1);
+	    dfs($dest,$mins,$maxs);
+	    $mins->[$id] = $save;
+	    $val = min($val, $maxs->[$id]);
+	    $maxs->[$id] = $val;
+	    last if $save > $val;
+	} else {
+	    my $save = $maxs->[$id];
+	    $maxs->[$id] = min($maxs->[$id], $val - 1);
+	    dfs($dest,$mins,$maxs);
+	    $maxs->[$id] = $save;
+	    $val = max($val, $mins->[$id]);
+	    $mins->[$id] = $val;
+	    last if $val > $save;
+	}
     }
-    dfs($rule->[1],$xmin,$xmax,$mmin,$mmax,$amin,$amax,$smin,$smax);
+    dfs($rule->[1],$mins,$maxs);
 }
-dfs('in',1,4000,1,4000,1,4000,1,4000);
+dfs('in',[(1) x 4],[(4000) x 4]);
 print $res;
